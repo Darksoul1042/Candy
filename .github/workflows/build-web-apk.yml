@@ -1,8 +1,6 @@
 # APK del prototipo web (WebView). No necesita licencia de Unity. SIN PROBAR en CI real.
 name: build-web-apk
 on: { workflow_dispatch: {}, push: { paths: ['Web/**', 'Android/**'] } }
-permissions:
-  contents: write
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -21,9 +19,3 @@ jobs:
         run: gradle -p Android assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with: { name: PetaloPopWeb-debug-apk, path: Android/app/build/outputs/apk/debug/app-debug.apk }
-      - name: Publicar en Releases
-        env: { GH_TOKEN: '${{ github.token }}' }
-        run: |
-          cp Android/app/build/outputs/apk/debug/app-debug.apk PetaloPopWeb-debug.apk
-          gh release delete web-latest --yes --cleanup-tag || true
-          gh release create web-latest PetaloPopWeb-debug.apk --title "Pétalo Pop web (debug)" --notes "APK de depuración del prototipo web. Commit ${{ github.sha }}."
