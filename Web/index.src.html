@@ -83,7 +83,15 @@ const GIFT={0:3,1:2,2:2,3:2,4:2};
 const BO=[[Booster.Hammer,'🔨','Martillo'],[Booster.FreeSwap,'🔄','Cambio'],[Booster.ObstacleRemover,'🧹','Limpiar'],[Booster.ExtraMoves,'➕','+5'],[Booster.SpecialMaker,'💣','Bomba']];
 // ------------------------------------------------------------ guardado (localStorage tolerante)
 function defSave(){return{unlocked:1,stars:Array(30).fill(0),best:Array(30).fill(0),inv:Object.assign({},GIFT),sound:true}}
-let save=(function(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&Array.isArray(s.stars)){const d=defSave();return Object.assign(d,s)}}catch(e){}return defSave()})();
+const clampInt=(v,lo,hi,d)=>{v=Number(v);return Number.isFinite(v)?Math.min(hi,Math.max(lo,Math.trunc(v))):d};
+function sanitize(s){const d=defSave();if(!s||typeof s!=='object')return d;
+ d.unlocked=clampInt(s.unlocked,1,30,1);
+ for(let i=0;i<30;i++){d.stars[i]=clampInt(Array.isArray(s.stars)?s.stars[i]:0,0,3,0);d.best[i]=clampInt(Array.isArray(s.best)?s.best[i]:0,0,1e9,0)}
+ if(s.inv&&typeof s.inv==='object')for(let k=0;k<5;k++)if(k in s.inv)d.inv[k]=clampInt(s.inv[k],0,99,GIFT[k]);
+ d.sound=s.sound!==false;
+ for(let i=0;i<30;i++)if(d.stars[i]>0&&d.unlocked<Math.min(30,i+2))d.unlocked=Math.min(30,i+2);
+ return d}
+let save=(function(){try{return sanitize(JSON.parse(localStorage.getItem(KEY)||'null'))}catch(e){}return defSave()})();
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(save))}catch(e){}}
 // ------------------------------------------------------------ audio (tras la primera interacción)
 let actx=null;
@@ -96,11 +104,12 @@ function buildMenu(){const g=$('grid');g.innerHTML='';for(let l=1;l<=30;l++){con
 function show(game){$('menu').hidden=game;$('game').hidden=!game;$('game').style.display=game?'flex':'none';if(game)resize()}
 // ------------------------------------------------------------ estado de partida
 const cv=$('cv'),ctx=cv.getContext('2d');
-let S=null,level=1,W=0,H=0,cs=0,view=[],jv=[],busy=false,armed=null,pending=null,sel=null,idleAt=0,parts=[],cssv={};
+let gen=0,S=null,level=1,W=0,H=0,cs=0,view=[],jv=[],busy=false,armed=null,pending=null,sel=null,idleAt=0,parts=[],cssv={};
 const now=()=>performance.now();
 function mkTile(t,sp,hp,x,y){return{t,sp,hp,x,y,a:null,dying:0,sc:1,pulse:0}}
 function syncView(){view=[];jv=[];for(let x=0;x<W;x++){view.push([]);jv.push([]);for(let y=0;y<H;y++){const p=P(x,y),t=S.board.get(p);view[x].push(t?mkTile(t,S.board.special(p),S.board.hp(p),x,y):null);jv[x].push(S.board.jelly(p))}}}
-function startLevel(l){level=l;S=new C.GameSession(C.getLevel(l),save.inv);// el inventario se consume sobre save.inv
+function toMenu(){gen++;S=null;busy=false;armed=null;pending=null;sel=null;buildMenu();show(false)}
+function startLevel(l){gen++;level=l;S=new C.GameSession(C.getLevel(l),save.inv);// el inventario se consume sobre save.inv
  S.boosters=save.inv;W=S.board.width;H=S.board.height;busy=false;armed=null;pending=null;sel=null;idleAt=now();parts=[];$('end').hidden=true;$('intro').hidden=true;$('ltitle').textContent='Nivel '+l;
  syncView();buildTargetMarks();hud();boosterBar();msg('Desliza un pétalo hacia un vecino.');show(true);showIntro()}
 const SHAPES=['círculos','rombos','cuadrados','triángulos','hexágonos','estrellas'];
@@ -110,10 +119,10 @@ function showIntro(){const T=S.config.targetScore;let h='<div>• Consigue <b>'+
 function msg(t){$('msg').textContent=t}
 const OBJ_TXT={[Obj.ClearJelly]:'Gelatina',[Obj.BreakFrozen]:'Hielo',[Obj.DestroyCrates]:'Cajas'};
 function buildTargetMarks(){const bar=$('bar');bar.querySelectorAll('i').forEach(e=>e.remove());[1,1.5,2].forEach(m=>{const i=document.createElement('i');i.style.left=(100*m/2)+'%';bar.appendChild(i)})}
-function hud(){const T=S.config.targetScore;$('moves').textContent=S.movesLeft;$('moves').style.color=S.movesLeft<=5?'var(--accent)':'';$('score').textContent=S.score;$('target').textContent=T;$('fill').style.width=Math.min(100,100*S.score/(2*T))+'%';
+function hud(){if(!S)return;const T=S.config.targetScore;$('moves').textContent=S.movesLeft;$('moves').style.color=S.movesLeft<=5?'var(--accent)':'';$('score').textContent=S.score;$('target').textContent=T;$('fill').style.width=Math.min(100,100*S.score/(2*T))+'%';
  const o=$('objs');o.innerHTML='';for(const it of S.objectives){const d=document.createElement('div');const done=it.current>=it.target;d.className='obj'+(done?' done':'');const cur=Math.min(it.current,it.target);
   d.innerHTML=(it.spec.kind===Obj.CollectType?'<span class="dot" style="background:'+COLORS[it.spec.type-1]+'"></span>':OBJ_TXT[it.spec.kind]+' ')+cur+'/'+it.target;o.appendChild(d)}}
-function boosterBar(){const b=$('boosters');b.innerHTML='';for(const[k,ic,name]of BO){const e=document.createElement('button');const n=S.count(k);e.className='bo'+(armed&&armed.k===k?' on':'');e.disabled=n<=0||busy||S.state!=='Playing';e.innerHTML='<em>'+ic+'</em>'+name+'<span class="n">'+n+'</span>';e.onclick=()=>pickBooster(k);b.appendChild(e)}}
+function boosterBar(){if(!S)return;const b=$('boosters');b.innerHTML='';for(const[k,ic,name]of BO){const e=document.createElement('button');const n=S.count(k);e.className='bo'+(armed&&armed.k===k?' on':'');e.disabled=n<=0||busy||S.state!=='Playing';e.innerHTML='<em>'+ic+'</em>'+name+'<span class="n">'+n+'</span>';e.onclick=()=>pickBooster(k);b.appendChild(e)}}
 function pickBooster(k){if(busy||S.state!=='Playing')return;if(k===Booster.ExtraMoves){run(()=>S.useExtraMoves());return}
  armed=armed&&armed.k===k?null:{k};pending=null;sel=null;boosterBar();msg(armed?(k===Booster.FreeSwap?'Cambio libre: toca dos pétalos vecinos.':'Toca el objetivo.'):'')}
 // ------------------------------------------------------------ animación de pasos
@@ -121,10 +130,11 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 function go(tile,tx,ty,dur){tile.a={fx:tile.x,fy:tile.y,tx,ty,t0:now(),dur}}
 function burst(x,y,col,n){for(let i=0;i<n;i++){const a=Math.random()*6.283,s=1.5+Math.random()*3.5;parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,col})}}
-async function play(steps){
+const ABORT={};
+async function play(steps){const g0=gen;const W=async ms=>{await wait(ms);if(g0!==gen)throw ABORT};
  for(const st of steps){
   if(st.kind==='Swap'||st.kind==='SwapBack'){const a=view[st.a.x][st.a.y],b=view[st.b.x][st.b.y];sfx.swap();
-   if(a)go(a,st.b.x,st.b.y,140);if(b)go(b,st.a.x,st.a.y,140);view[st.a.x][st.a.y]=b;view[st.b.x][st.b.y]=a;await wait(150);
+   if(a)go(a,st.b.x,st.b.y,140);if(b)go(b,st.a.x,st.a.y,140);view[st.a.x][st.a.y]=b;view[st.b.x][st.b.y]=a;await W(150);
    if(st.kind==='SwapBack'){sfx.bad()}}
   else if(st.kind==='Clear'){
    for(const p of st.cleared){const t=view[p.x][p.y];if(t){t.dying=now();burst(p.x,p.y,COLORS[t.t-1]||'#a07850',4);view[p.x][p.y]=null;dead.push(t)}}
@@ -132,27 +142,28 @@ async function play(steps){
    if(st.points>0&&st.cleared.length){let cx=0,cy=0;for(const p of st.cleared){cx+=p.x;cy+=p.y}pops.push({txt:'+'+st.points+(st.cascade>1?'  x'+st.cascade:''),x:cx/st.cleared.length,y:cy/st.cleared.length,t0:now()})}
    if(st.activated.length||st.created.length)sfx.special();else sfx.pop(st.cascade);
    for(const h of st.hits){if(h.kind==='Jelly')jv[h.pos.x][h.pos.y]=h.remaining;else{const t=view[h.pos.x][h.pos.y];if(t){t.hp=h.remaining;t.pulse=now()}}}
-   hud();await wait(210)}
+   hud();await W(210)}
   else if(st.kind==='Fall'||st.kind==='Spawn'||st.kind==='Shuffle'){
    const tiles=[];for(const m of st.moves){let t;if(st.kind==='Spawn')t=mkTile(m.type,0,0,m.from.x,m.from.y);else{t=view[m.from.x][m.from.y];if(st.kind==='Fall')view[m.from.x][m.from.y]=null}tiles.push([t,m])}
    if(st.kind==='Shuffle')for(const[,m]of tiles)view[m.from.x][m.from.y]=null;
    let md=0;for(const[t,m]of tiles){if(!t)continue;view[m.to.x][m.to.y]=t;const d=Math.hypot(m.to.x-t.x,m.to.y-t.y);md=Math.max(md,d);go(t,m.to.x,m.to.y,st.kind==='Shuffle'?350:110+60*d)}
    if(st.kind==='Shuffle')msg('Sin movimientos: tablero mezclado.');
-   await wait(md?Math.min(600,130+60*md):0)}
+   await W(md?Math.min(600,130+60*md):0)}
  }
 }
 let dead=[],pops=[];
-async function run(fn){if(busy)return;busy=true;msg('');boosterBar();const r=fn();idleAt=now();
+async function run(fn){if(busy||!S)return;const g0=gen;busy=true;msg('');boosterBar();const r=fn();idleAt=now();
  if(!r.accepted&&!r.steps.length){busy=false;boosterBar();return false}
- await play(r.steps);syncView();hud();busy=false;idleAt=now();if(r.accepted)persist();
+ try{await play(r.steps)}catch(e){if(e===ABORT)return false;throw e}
+ if(g0!==gen)return false;syncView();hud();busy=false;idleAt=now();if(r.accepted)persist();
  if(r.accepted&&r.pointsGained>0&&r.maxCascade>1)msg('¡Cascada x'+r.maxCascade+'! +'+r.pointsGained);else if(r.accepted&&r.pointsGained>0)msg('+'+r.pointsGained);
  if(S.state!=='Playing')finish();else boosterBar();return r.accepted}
-function finish(){boosterBar();const T=S.config.targetScore;const won=S.state==='Won';
+function finish(){const g0=gen;boosterBar();const T=S.config.targetScore;const won=S.state==='Won';
  if(won){const st=S.stars;save.stars[level-1]=Math.max(save.stars[level-1],st);save.best[level-1]=Math.max(save.best[level-1],S.score);if(level<30)save.unlocked=Math.max(save.unlocked,level+1);
   const rk=BO[level%5][0];save.inv[rk]=(save.inv[rk]||0)+1;persist();sfx.win();
   $('etitle').textContent='¡Nivel superado!';$('stars').textContent='★'.repeat(st)+'☆'.repeat(3-st);$('etext').textContent=S.score+' puntos · premio: 1 '+BO[level%5][2];$('enext').hidden=level>=30}
  else{persist();sfx.lose();$('etitle').textContent='Sin movimientos';$('stars').textContent='☆☆☆';$('etext').textContent=S.score<T?'Te faltaron '+(T-S.score)+' puntos.':'Faltó completar los objetivos.';$('enext').hidden=true}
- setTimeout(()=>{$('end').hidden=false},350)}
+ setTimeout(()=>{if(g0===gen)$('end').hidden=false},350)}
 // ------------------------------------------------------------ entrada
 function cellAt(ev){const r=cv.getBoundingClientRect();const x=Math.floor((ev.clientX-r.left)/r.width*W),y=H-1-Math.floor((ev.clientY-r.top)/r.height*H);return(x>=0&&y>=0&&x<W&&y<H)?P(x,y):null}
 let down=null;
@@ -221,11 +232,11 @@ if(window.matchMedia)try{matchMedia('(prefers-color-scheme: dark)').addEventList
 // ------------------------------------------------------------ botones
 $('iplay').onclick=()=>{$('intro').hidden=true;idleAt=now();sfx.swap()};
 $('snd1').onclick=$('snd2').onclick=()=>setSound(!save.sound);
-$('back').onclick=()=>{S=null;buildMenu();show(false)};
-$('emenu').onclick=()=>{S=null;buildMenu();show(false)};
+$('back').onclick=toMenu;
+$('emenu').onclick=toMenu;
 $('eretry').onclick=()=>startLevel(level);
 $('enext').onclick=()=>startLevel(Math.min(30,level+1));
-window.__back=function(){if(S&&!$('game').hidden){S=null;buildMenu();show(false);return true}return false};
+window.__back=function(){if(S&&!$('game').hidden){toMenu();return true}return false};
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('visibilitychange',()=>{try{if(actx)document.hidden?actx.suspend():actx.resume()}catch(e){}});
 setSound(save.sound);buildMenu();show(false);readCss();requestAnimationFrame(draw);
