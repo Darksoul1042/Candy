@@ -1,0 +1,805 @@
+<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui}</style><title>Pétalo Pop</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap">
+<style>
+:root{--bg:#fdf3f0;--panel:#ffffff;--fg:#3a2430;--muted:#8a6f7b;--accent:#e8486a;--accent-fg:#fff;--line:#f0d9d6;--board:#f6e3df;--cell:#fbeeea;--good:#3e9e5a;--shadow:0 2px 10px rgba(120,50,70,.12)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1219;--panel:#2a1a24;--fg:#f7e6ea;--muted:#b9979f;--accent:#ff6b8b;--accent-fg:#2a0f18;--line:#43283a;--board:#2f1c28;--cell:#3a2432;--good:#5fd17f;--shadow:0 2px 10px rgba(0,0,0,.4);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1d1219;--panel:#2a1a24;--fg:#f7e6ea;--muted:#b9979f;--accent:#ff6b8b;--accent-fg:#2a0f18;--line:#43283a;--board:#2f1c28;--cell:#3a2432;--good:#5fd17f;--shadow:0 2px 10px rgba(0,0,0,.4);color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:'Baloo 2',system-ui,sans-serif;font-size:16px;padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#app{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+h1{margin:0;font-size:1.7rem;line-height:1.1;font-weight:800;color:var(--accent)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer;border:0}
+.btn{background:var(--accent);color:var(--accent-fg);border-radius:14px;padding:8px 18px;font-weight:700;box-shadow:var(--shadow)}
+.btn.ghost{background:var(--panel);color:var(--fg);border:1px solid var(--line)}
+.icon{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:40px;height:40px;font-size:1.1rem}
+.sub{color:var(--muted);font-size:.9rem;margin:0}
+#grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.lv{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px 0 4px;display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:var(--shadow);min-width:0}
+.lv b{font-size:1.25rem;line-height:1.2}
+.lv span{font-size:.8rem;letter-spacing:1px;color:#f2b01e;height:1.1em}
+.lv[disabled]{opacity:.45;box-shadow:none}
+#hud{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px 12px;box-shadow:var(--shadow)}
+.stat{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.stat b{font-size:1.3rem}
+.stat small{color:var(--muted);font-size:.8rem;display:block;line-height:1}
+#bar{position:relative;height:12px;border-radius:8px;background:var(--cell);overflow:hidden}
+#fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent);border-radius:8px;transition:width .3s}
+#bar i{position:absolute;top:0;bottom:0;width:2px;background:var(--panel);opacity:.9}
+#objs{display:flex;gap:6px;flex-wrap:wrap}
+.obj{display:flex;align-items:center;gap:6px;background:var(--cell);border-radius:10px;padding:2px 10px;font-weight:700;font-size:.95rem}
+.obj.done{background:var(--good);color:#fff}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+#stage{position:relative}
+canvas{display:block;width:100%;aspect-ratio:1;border-radius:18px;background:var(--board);touch-action:none;box-shadow:var(--shadow)}
+#boosters{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.bo{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;font-size:.72rem;line-height:1.1;position:relative;min-width:0;box-shadow:var(--shadow)}
+.bo em{font-style:normal;font-size:1.3rem;line-height:1.2}
+.bo .n{position:absolute;top:-6px;right:-2px;background:var(--accent);color:var(--accent-fg);border-radius:10px;min-width:20px;font-weight:800;font-size:.8rem;padding:0 4px}
+.bo.on{outline:3px solid var(--accent)}
+.bo[disabled]{opacity:.4}
+#msg{min-height:1.3em;text-align:center;color:var(--muted);font-size:.9rem;margin:0}
+#end{position:absolute;inset:0;background:rgba(30,10,20,.55);border-radius:18px;display:flex;align-items:center;justify-content:center;padding:16px}
+#end>div{background:var(--panel);border-radius:20px;padding:20px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;max-width:300px}
+#end h2{margin:0;font-size:1.6rem}
+#stars{font-size:2rem;color:#f2b01e;letter-spacing:4px}
+.note{font-size:.75rem;color:var(--muted);text-align:center;margin:0}
+</style>
+<div id="app">
+ <section id="menu">
+  <div class="row"><h1>Pétalo Pop</h1><button class="icon" id="snd1" aria-label="Sonido">🔊</button></div>
+  <p class="sub" style="margin:2px 0 10px">Une 3 o más pétalos. 30 niveles originales.</p>
+  <div id="grid"></div>
+  <p class="note" style="margin-top:12px">Prototipo web del proyecto Unity «PetaloPop». Mismo núcleo de reglas, verificado contra la versión C#.</p>
+ </section>
+ <section id="game" hidden style="display:flex;flex-direction:column;gap:10px">
+  <div class="row"><button class="icon" id="back" aria-label="Menú">☰</button><b id="ltitle" style="font-size:1.2rem">Nivel 1</b><button class="icon" id="snd2" aria-label="Sonido">🔊</button></div>
+  <div id="hud">
+   <div class="stat"><div><small>Movimientos</small><b id="moves">0</b></div><div><small>Puntos</small><b id="score">0</b></div><div><small>Meta</small><b id="target">0</b></div></div>
+   <div id="bar"><div id="fill"></div></div>
+   <div id="objs"></div>
+  </div>
+  <div id="stage"><canvas id="cv"></canvas>
+   <div id="end" hidden><div><h2 id="etitle"></h2><div id="stars"></div><div id="etext" class="sub"></div>
+    <div class="row" style="gap:8px"><button class="btn ghost" id="emenu">Menú</button><button class="btn ghost" id="eretry">Reintentar</button><button class="btn" id="enext">Siguiente</button></div></div></div>
+  </div>
+  <p id="msg"></p>
+  <div id="boosters"></div>
+ </section>
+</div>
+<script>
+// Pétalo Pop — núcleo del juego en JavaScript. Port 1:1 de Assets/Scripts/Core (C#); se verifica contra C# con Tests/diff.
+(function (root) {
+  'use strict';
+  const EMPTY = 0, CRATE = -1, STONE = -2;
+  const SK = { None: 0, LineH: 1, LineV: 2, Bomb: 3, ColorBurst: 4 };
+  const Obj = { CollectType: 0, ClearJelly: 1, BreakFrozen: 2, DestroyCrates: 3 };
+  const Booster = { Hammer: 0, FreeSwap: 1, ObstacleRemover: 2, ExtraMoves: 3, SpecialMaker: 4 };
+  const P = (x, y) => ({ x, y });
+  const key = (p) => p.y * 64 + p.x;
+
+  class PosSet {
+    constructor() { this.m = new Map(); }
+    add(p) { const k = key(p); if (this.m.has(k)) return false; this.m.set(k, p); return true; }
+    has(p) { return this.m.has(key(p)); }
+    delete(p) { return this.m.delete(key(p)); }
+    get size() { return this.m.size; }
+    values() { return Array.from(this.m.values()); }
+    unionWith(list) { for (const p of list) this.add(p); }
+    exceptWith(list) { for (const p of list) this.delete(p); }
+  }
+
+  class GameRng {
+    constructor(seed) {
+      this.s = BigInt.asUintN(64, BigInt(seed >>> 0) * 0x9E3779B97F4A7C15n + 0x1234567n);
+      this.nextU32();
+    }
+    clone() { const r = Object.create(GameRng.prototype); r.s = this.s; return r; }
+    nextU32() {
+      this.s = BigInt.asUintN(64, this.s + 0x9E3779B97F4A7C15n);
+      let z = this.s;
+      z = BigInt.asUintN(64, (z ^ (z >> 30n)) * 0xBF58476D1CE4E5B9n);
+      z = BigInt.asUintN(64, (z ^ (z >> 27n)) * 0x94D049BB133111EBn);
+      return Number(BigInt.asUintN(32, (z ^ (z >> 31n)) >> 32n));
+    }
+    next(max) { return this.nextU32() % max; }
+    nextRange(min, max) { return min + this.next(max - min); }
+  }
+
+  class Board {
+    constructor(w, h) {
+      this.width = w; this.height = h;
+      const n = w * h;
+      this.cells = new Int32Array(n); this.specials = new Uint8Array(n); this.hpv = new Int32Array(n); this.jellyv = new Int32Array(n);
+    }
+    i(p) { return p.x * this.height + p.y; }
+    get(p) { return this.cells[this.i(p)]; }
+    set(p, v) { this.cells[this.i(p)] = v; }
+    at(x, y) { return this.cells[x * this.height + y]; }
+    special(p) { return this.specials[this.i(p)]; }
+    setSpecial(p, k) { this.specials[this.i(p)] = k; }
+    hp(p) { return this.hpv[this.i(p)]; }
+    setHp(p, v) { this.hpv[this.i(p)] = v; }
+    jelly(p) { return this.jellyv[this.i(p)]; }
+    setJelly(p, v) { this.jellyv[this.i(p)] = v; }
+    inBounds(p) { return p.x >= 0 && p.y >= 0 && p.x < this.width && p.y < this.height; }
+    isMovable(p) { return this.get(p) > 0 && this.hp(p) === 0; }
+    swap(a, b) {
+      const ia = this.i(a), ib = this.i(b);
+      for (const arr of [this.cells, this.specials, this.hpv]) { const t = arr[ia]; arr[ia] = arr[ib]; arr[ib] = t; }
+    }
+    clearCell(p) { const k = this.i(p); this.cells[k] = EMPTY; this.specials[k] = SK.None; this.hpv[k] = 0; }
+    clone() {
+      const c = new Board(this.width, this.height);
+      c.cells.set(this.cells); c.specials.set(this.specials); c.hpv.set(this.hpv); c.jellyv.set(this.jellyv);
+      return c;
+    }
+    isFull() { return !this.cells.includes(EMPTY); }
+    countSpecials() { let n = 0; for (const s of this.specials) if (s !== SK.None) n++; return n; }
+    countWhere(f) { let n = 0; for (let x = 0; x < this.width; x++) for (let y = 0; y < this.height; y++) if (f(P(x, y))) n++; return n; }
+  }
+  const adjacent = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
+
+  // ---------------------------------------------------------------- líneas
+  function findMatches(b) {
+    const res = [];
+    const scan = (horizontal, fixed, length) => {
+      const get = (i) => (horizontal ? b.at(i, fixed) : b.at(fixed, i));
+      let runStart = 0;
+      for (let i = 1; i <= length; i++) {
+        const prev = get(i - 1), cur = i < length ? get(i) : -1;
+        if (cur === prev && prev > 0) continue;
+        if (prev > 0 && i - runStart >= 3) {
+          const m = { type: prev, horizontal, cells: [] };
+          for (let k = runStart; k < i; k++) m.cells.push(horizontal ? P(k, fixed) : P(fixed, k));
+          res.push(m);
+        }
+        runStart = i;
+      }
+    };
+    for (let y = 0; y < b.height; y++) scan(true, y, b.width);
+    for (let x = 0; x < b.width; x++) scan(false, x, b.height);
+    return res;
+  }
+  function countDir(b, p, dx, dy, t) { let n = 0, x = p.x + dx, y = p.y + dy; while (b.inBounds(P(x, y)) && b.at(x, y) === t) { n++; x += dx; y += dy; } return n; }
+  function isPartOfMatch(b, p) {
+    const t = b.get(p); if (t <= 0) return false;
+    if (1 + countDir(b, p, -1, 0, t) + countDir(b, p, 1, 0, t) >= 3) return true;
+    return 1 + countDir(b, p, 0, -1, t) + countDir(b, p, 0, 1, t) >= 3;
+  }
+
+  // ---------------------------------------------------------------- especiales
+  function isComboSwap(b, a, c) {
+    const ka = b.special(a), kc = b.special(c);
+    if (ka === SK.None && kc === SK.None) return false;
+    if (ka === SK.ColorBurst || kc === SK.ColorBurst) return true;
+    return ka !== SK.None && kc !== SK.None;
+  }
+  function newOutcome() {
+    return { cleared: new PosSet(), forceClear: new PosSet(), created: [], activated: [], hits: [],
+      stats: { clearedByType: new Map(), jellyCleared: 0, frozenBroken: 0, cratesDestroyed: 0, stonesRemoved: 0 } };
+  }
+  function addRow(b, set, y) { if (y < 0 || y >= b.height) return; for (let x = 0; x < b.width; x++) if (b.at(x, y) !== EMPTY) set.add(P(x, y)); }
+  function addCol(b, set, x) { if (x < 0 || x >= b.width) return; for (let y = 0; y < b.height; y++) if (b.at(x, y) !== EMPTY) set.add(P(x, y)); }
+  function addArea(b, set, c, r) {
+    for (let x = c.x - r; x <= c.x + r; x++) for (let y = c.y - r; y <= c.y + r; y++) if (b.inBounds(P(x, y)) && b.at(x, y) !== EMPTY) set.add(P(x, y));
+  }
+  function effect(b, p, k) {
+    const set = new PosSet();
+    if (k === SK.LineH) addRow(b, set, p.y);
+    else if (k === SK.LineV) addCol(b, set, p.x);
+    else if (k === SK.Bomb) addArea(b, set, p, 1);
+    else if (k === SK.ColorBurst) { const t = b.get(p); for (let x = 0; x < b.width; x++) for (let y = 0; y < b.height; y++) if (b.at(x, y) === t) set.add(P(x, y)); }
+    return set.values();
+  }
+  function expand(b, o, pre, protect) {
+    const queue = o.cleared.values();
+    const done = new PosSet(); done.unionWith(pre.values());
+    for (let qi = 0; qi < queue.length; qi++) {
+      const p = queue[qi], k = b.special(p);
+      if (k === SK.None || done.has(p) || protect.has(p)) continue;
+      if (b.get(p) > 0 && b.hp(p) > 0 && !o.forceClear.has(p)) continue;
+      done.add(p);
+      o.activated.push({ pos: p, kind: k });
+      for (const e of effect(b, p, k)) if (o.cleared.add(e)) queue.push(e);
+    }
+  }
+  function overlaps(l1, l2) { for (const p of l1) for (const q of l2) if (p.x === q.x && p.y === q.y) return true; return false; }
+  function pickSpawn(b, comp, cells, a, c, kind) {
+    const cand = [];
+    if (a && cells.has(a)) cand.push(a);
+    if (c && cells.has(c)) cand.push(c);
+    if (kind === SK.Bomb) {
+      for (const h of comp.filter((m) => m.horizontal)) for (const v of comp.filter((m) => !m.horizontal)) for (const p of h.cells) if (v.cells.some((q) => q.x === p.x && q.y === p.y)) cand.push(p);
+    }
+    let longest = comp[0]; for (const m of comp) if (m.cells.length > longest.cells.length) longest = m;
+    cand.push(longest.cells[Math.floor(longest.cells.length / 2)]);
+    cand.push(...cells.values());
+    for (const p of cand) if (b.special(p) === SK.None) return p;
+    return null;
+  }
+  function fromMatches(b, matches, swapA, swapB) {
+    const o = newOutcome();
+    let comps = [];
+    for (const m of matches) {
+      const touching = comps.filter((c) => c.some((x) => overlaps(x.cells, m.cells)));
+      const merged = [m];
+      for (const t of touching) { merged.push(...t); comps = comps.filter((c) => c !== t); }
+      comps.push(merged);
+    }
+    const protect = new PosSet();
+    for (const comp of comps) {
+      const cells = new PosSet();
+      for (const m of comp) cells.unionWith(m.cells);
+      o.cleared.unionWith(cells.values());
+      const maxRun = Math.max(...comp.map((m) => m.cells.length));
+      const hasH = comp.some((m) => m.horizontal), hasV = comp.some((m) => !m.horizontal);
+      let kind = SK.None;
+      if (maxRun >= 5) kind = SK.ColorBurst;
+      else if (hasH && hasV) kind = SK.Bomb;
+      else if (maxRun === 4) kind = comp.find((m) => m.cells.length === 4).horizontal ? SK.LineV : SK.LineH;
+      if (kind === SK.None) continue;
+      const pos = pickSpawn(b, comp, cells, swapA, swapB, kind);
+      if (!pos) continue;
+      o.created.push({ pos, type: comp[0].type, kind });
+      protect.add(pos);
+    }
+    o.cleared.exceptWith(protect.values());
+    expand(b, o, new PosSet(), protect);
+    o.cleared.exceptWith(protect.values());
+    return o;
+  }
+  function fromSwapCombo(b, a, c) {
+    if (!isComboSwap(b, a, c)) return null;
+    const o = newOutcome(), pre = new PosSet();
+    const ka = b.special(a), kc = b.special(c);
+    if (ka === SK.ColorBurst && kc === SK.ColorBurst) {
+      for (let x = 0; x < b.width; x++) for (let y = 0; y < b.height; y++) if (b.at(x, y) !== EMPTY) o.cleared.add(P(x, y));
+      o.activated.push({ pos: a, kind: ka }); o.activated.push({ pos: c, kind: kc });
+      pre.add(a); pre.add(c);
+    } else if (ka === SK.ColorBurst || kc === SK.ColorBurst) {
+      const burst = ka === SK.ColorBurst ? a : c, other = ka === SK.ColorBurst ? c : a;
+      const ko = b.special(other), t = b.get(other);
+      o.cleared.add(burst);
+      o.activated.push({ pos: burst, kind: SK.ColorBurst });
+      pre.add(burst);
+      for (let x = 0; x < b.width; x++) for (let y = 0; y < b.height; y++) {
+        const p = P(x, y);
+        if (b.get(p) !== t) continue;
+        o.cleared.add(p);
+        if (ko !== SK.None) b.setSpecial(p, ko);
+      }
+    } else {
+      const lineA = ka === SK.LineH || ka === SK.LineV, lineC = kc === SK.LineH || kc === SK.LineV;
+      if (lineA && lineC) { addRow(b, o.cleared, c.y); addCol(b, o.cleared, c.x); }
+      else if (ka === SK.Bomb && kc === SK.Bomb) addArea(b, o.cleared, c, 2);
+      else for (let d = -1; d <= 1; d++) { addRow(b, o.cleared, c.y + d); addCol(b, o.cleared, c.x + d); }
+      o.cleared.add(a); o.cleared.add(c);
+      o.activated.push({ pos: a, kind: ka }); o.activated.push({ pos: c, kind: kc });
+      pre.add(a); pre.add(c);
+    }
+    expand(b, o, pre, new PosSet());
+    return o;
+  }
+
+  // ---------------------------------------------------------------- obstáculos
+  function addType(stats, t) { stats.clearedByType.set(t, (stats.clearedByType.get(t) || 0) + 1); }
+  function filterObstacles(b, o) {
+    const original = o.cleared.values();
+    const crateHit = new PosSet();
+    const DX = [1, -1, 0, 0], DY = [0, 0, 1, -1];
+    for (const p of original) for (let i = 0; i < 4; i++) {
+      const n = P(p.x + DX[i], p.y + DY[i]);
+      if (b.inBounds(n) && b.get(n) === CRATE) crateHit.add(n);
+    }
+    const remove = new PosSet(), destroyed = [];
+    for (const p of original) {
+      const t = b.get(p), force = o.forceClear.has(p);
+      if (t === STONE) o.stats.stonesRemoved++;
+      else if (t === CRATE) {
+        if (force) { o.stats.cratesDestroyed++; crateHit.delete(p); }
+        else { remove.add(p); crateHit.add(p); }
+      } else if (t > 0 && b.hp(p) > 0 && !force) {
+        const hp = b.hp(p) - 1; b.setHp(p, hp);
+        o.hits.push({ pos: p, kind: 'Frozen', remaining: hp });
+        if (hp === 0) o.stats.frozenBroken++;
+        remove.add(p);
+      }
+    }
+    for (const p of crateHit.values()) {
+      if (b.get(p) !== CRATE) continue;
+      const hp = b.hp(p) - 1; b.setHp(p, hp);
+      o.hits.push({ pos: p, kind: 'Crate', remaining: hp });
+      if (hp <= 0) { destroyed.push(p); o.stats.cratesDestroyed++; }
+    }
+    o.cleared.exceptWith(remove.values());
+    for (const p of destroyed) o.cleared.add(p);
+    for (const p of [...o.cleared.values(), ...o.created.map((c) => c.pos)]) {
+      const j = b.jelly(p);
+      if (j <= 0) continue;
+      b.setJelly(p, j - 1);
+      o.hits.push({ pos: p, kind: 'Jelly', remaining: j - 1 });
+      if (j - 1 === 0) o.stats.jellyCleared++;
+    }
+    for (const p of o.cleared.values()) if (b.get(p) > 0) addType(o.stats, b.get(p));
+  }
+
+  // ---------------------------------------------------------------- gravedad
+  function applyGravity(b) {
+    const moves = [];
+    for (let x = 0; x < b.width; x++) {
+      let write = 0;
+      for (let y = 0; y < b.height; y++) {
+        const from = P(x, y), t = b.get(from);
+        if (t === EMPTY) continue;
+        if (y !== write) {
+          const to = P(x, write), sp = b.special(from), hp = b.hp(from);
+          b.clearCell(from); b.set(to, t); b.setSpecial(to, sp); b.setHp(to, hp);
+          moves.push({ from, to, type: t, special: sp, hp });
+        }
+        write++;
+      }
+    }
+    return moves;
+  }
+  function refill(b, source) {
+    const spawns = [];
+    for (let x = 0; x < b.width; x++) {
+      let k = 0;
+      for (let y = 0; y < b.height; y++) {
+        if (b.at(x, y) !== EMPTY) continue;
+        const t = source.next(x);
+        b.set(P(x, y), t);
+        spawns.push({ from: P(x, b.height + k), to: P(x, y), type: t, special: SK.None, hp: 0 });
+        k++;
+      }
+    }
+    return spawns;
+  }
+
+  // ---------------------------------------------------------------- movimientos y generación
+  function isValidSwap(b, a, c) {
+    if (!b.inBounds(a) || !b.inBounds(c) || !adjacent(a, c)) return false;
+    if (!b.isMovable(a) || !b.isMovable(c)) return false;
+    if (isComboSwap(b, a, c)) return true;
+    if (b.get(a) === b.get(c)) return false;
+    b.swap(a, c);
+    const ok = isPartOfMatch(b, a) || isPartOfMatch(b, c);
+    b.swap(a, c);
+    return ok;
+  }
+  function findAllMoves(b) {
+    const list = [];
+    for (let x = 0; x < b.width; x++) for (let y = 0; y < b.height; y++) {
+      const p = P(x, y), right = P(x + 1, y), up = P(x, y + 1);
+      if (isValidSwap(b, p, right)) list.push({ from: p, to: right });
+      if (isValidSwap(b, p, up)) list.push({ from: p, to: up });
+    }
+    return list;
+  }
+  function hasMove(b) {
+    for (let x = 0; x < b.width; x++) for (let y = 0; y < b.height; y++) {
+      const p = P(x, y);
+      if (isValidSwap(b, p, P(x + 1, y)) || isValidSwap(b, p, P(x, y + 1))) return true;
+    }
+    return false;
+  }
+  function validateRows(rows, cfg, name) {
+    if (!rows) return;
+    if (rows.length !== cfg.height) throw new Error(name + ': filas');
+    for (const r of rows) if (r.length !== cfg.width) throw new Error(name + ': columnas');
+  }
+  function pickWithoutMatch(b, x, y, typeCount, rng) {
+    const allowed = [];
+    for (let t = 1; t <= typeCount; t++) {
+      const h = x >= 2 && b.at(x - 1, y) === t && b.at(x - 2, y) === t;
+      const v = y >= 2 && b.at(x, y - 1) === t && b.at(x, y - 2) === t;
+      if (!h && !v) allowed.push(t);
+    }
+    return allowed[rng.next(allowed.length)];
+  }
+  function createBoard(cfg, rng) {
+    validateRows(cfg.tileRows, cfg, 'tileRows'); validateRows(cfg.jellyRows, cfg, 'jellyRows');
+    for (let attempt = 0; attempt < 1000; attempt++) {
+      const b = new Board(cfg.width, cfg.height);
+      for (let y = 0; y < cfg.height; y++) for (let x = 0; x < cfg.width; x++) b.set(P(x, y), pickWithoutMatch(b, x, y, cfg.typeCount, rng));
+      for (let row = 0; row < cfg.height; row++) for (let x = 0; x < cfg.width; x++) {
+        const p = P(x, cfg.height - 1 - row);
+        if (cfg.tileRows) {
+          switch (cfg.tileRows[row][x]) {
+            case 'f': b.setHp(p, 1); break;
+            case 'F': b.setHp(p, 2); break;
+            case 'c': b.set(p, CRATE); b.setHp(p, 1); break;
+            case 'C': b.set(p, CRATE); b.setHp(p, 2); break;
+            case 'K': b.set(p, CRATE); b.setHp(p, 3); break;
+            case 'S': b.set(p, STONE); break;
+          }
+        }
+        if (cfg.jellyRows) { const ch = cfg.jellyRows[row][x]; if (ch >= '1' && ch <= '9') b.setJelly(p, ch.charCodeAt(0) - 48); }
+      }
+      if (hasMove(b)) return b;
+    }
+    throw new Error('No se pudo generar un tablero válido.');
+  }
+  function tryReshuffle(b, rng) {
+    const pos = [];
+    for (let y = 0; y < b.height; y++) for (let x = 0; x < b.width; x++) { const p = P(x, y); if (b.isMovable(p)) pos.push(p); }
+    const n = pos.length; if (n < 3) return null;
+    const types = pos.map((p) => b.get(p)), specs = pos.map((p) => b.special(p));
+    for (let attempt = 0; attempt < 500; attempt++) {
+      const perm = Array.from({ length: n }, (_, i) => i);
+      for (let i = n - 1; i > 0; i--) { const j = rng.next(i + 1); [perm[i], perm[j]] = [perm[j], perm[i]]; }
+      const trial = b.clone();
+      for (let i = 0; i < n; i++) { trial.set(pos[i], types[perm[i]]); trial.setSpecial(pos[i], specs[perm[i]]); }
+      if (findMatches(trial).length > 0 || !hasMove(trial)) continue;
+      const moves = [];
+      for (let i = 0; i < n; i++) {
+        b.set(pos[i], types[perm[i]]); b.setSpecial(pos[i], specs[perm[i]]);
+        moves.push({ from: pos[perm[i]], to: pos[i], type: types[perm[i]], special: specs[perm[i]], hp: 0 });
+      }
+      return moves;
+    }
+    return null;
+  }
+
+  // ---------------------------------------------------------------- objetivos, inventario, puntuación
+  function makeObjectives(specs, initial) {
+    const items = [];
+    for (const s of specs || []) {
+      let target = s.count;
+      if (target <= 0) {
+        if (s.kind === Obj.ClearJelly) target = initial.countWhere((p) => initial.jelly(p) > 0);
+        else if (s.kind === Obj.BreakFrozen) target = initial.countWhere((p) => initial.get(p) > 0 && initial.hp(p) > 0);
+        else if (s.kind === Obj.DestroyCrates) target = initial.countWhere((p) => initial.get(p) === CRATE);
+      }
+      items.push({ spec: s, target, current: 0 });
+    }
+    return items;
+  }
+  const calcPoints = (count, cascade) => count * 10 * Math.min(cascade, 5);
+  const starsFor = (score, target) => (score >= target * 2 ? 3 : score >= Math.trunc((target * 3) / 2) ? 2 : score >= target ? 1 : 0);
+
+  // ---------------------------------------------------------------- sesión de juego
+  class GameSession {
+    constructor(config, boosters) {
+      this.config = config;
+      this.rng = new GameRng(config.seed);
+      this.board = createBoard(config, this.rng);
+      this.source = { next: () => this.rng.nextRange(1, config.typeCount + 1) };
+      this.score = 0; this.movesLeft = config.moves;
+      this.objectives = makeObjectives(config.objectives, this.board);
+      this.boosters = boosters ? Object.assign({}, boosters) : {};
+      this.state = 'Playing';
+    }
+    get stars() { return starsFor(this.score, this.config.targetScore); }
+    objectivesDone() { return this.objectives.every((i) => i.current >= i.target); }
+    count(k) { return this.boosters[k] || 0; }
+    consume(k) { if (this.count(k) <= 0) return false; this.boosters[k] = this.count(k) - 1; return true; }
+    hint() { const m = findAllMoves(this.board); return m.length ? m[0] : null; }
+    _result(accepted) { return { accepted, steps: [], pointsGained: 0, maxCascade: 0, state: this.state }; }
+
+    trySwap(a, b) {
+      const r = this._result(false);
+      if (this.state !== 'Playing' || !this.board.inBounds(a) || !this.board.inBounds(b) || !adjacent(a, b)) return r;
+      if (!this.board.isMovable(a) || !this.board.isMovable(b)) return r;
+      if (!isValidSwap(this.board, a, b)) { r.steps.push({ kind: 'Swap', a, b }, { kind: 'SwapBack', a, b }); return r; }
+      this.movesLeft--;
+      this.board.swap(a, b);
+      r.accepted = true; r.steps.push({ kind: 'Swap', a, b });
+      this._resolve(r, fromSwapCombo(this.board, a, b), a, b);
+      return r;
+    }
+    _boosterStart(k) { return { r: this._result(false), ok: this.state === 'Playing' && this.count(k) > 0 }; }
+    useHammer(p) {
+      const { r, ok } = this._boosterStart(Booster.Hammer);
+      if (!ok || !this.board.inBounds(p) || this.board.get(p) === EMPTY) return r;
+      this.consume(Booster.Hammer);
+      const o = newOutcome(); o.cleared.add(p); o.forceClear.add(p);
+      expand(this.board, o, new PosSet(), new PosSet());
+      r.accepted = true; this._resolve(r, o, null, null); return r;
+    }
+    useFreeSwap(a, b) {
+      const { r, ok } = this._boosterStart(Booster.FreeSwap);
+      const bd = this.board;
+      if (!ok || !bd.inBounds(a) || !bd.inBounds(b) || !adjacent(a, b) || !bd.isMovable(a) || !bd.isMovable(b)) return r;
+      this.consume(Booster.FreeSwap);
+      bd.swap(a, b); r.accepted = true; r.steps.push({ kind: 'Swap', a, b });
+      this._resolve(r, fromSwapCombo(bd, a, b), a, b); return r;
+    }
+    useObstacleRemover(p) {
+      const { r, ok } = this._boosterStart(Booster.ObstacleRemover);
+      const bd = this.board;
+      if (!ok || !bd.inBounds(p)) return r;
+      const t = bd.get(p);
+      const frozen = t > 0 && bd.hp(p) > 0, blocker = t === CRATE || t === STONE, jelly = bd.jelly(p) > 0;
+      if (!frozen && !blocker && !jelly) return r;
+      this.consume(Booster.ObstacleRemover);
+      const o = newOutcome();
+      if (blocker) { o.cleared.add(p); o.forceClear.add(p); }
+      else if (frozen) { bd.setHp(p, 0); o.hits.push({ pos: p, kind: 'Frozen', remaining: 0 }); o.stats.frozenBroken++; }
+      if (!blocker && jelly) { bd.setJelly(p, 0); o.hits.push({ pos: p, kind: 'Jelly', remaining: 0 }); o.stats.jellyCleared++; }
+      r.accepted = true; this._resolve(r, o, null, null); return r;
+    }
+    useExtraMoves() {
+      const { r, ok } = this._boosterStart(Booster.ExtraMoves);
+      if (!ok) return r;
+      this.consume(Booster.ExtraMoves); this.movesLeft += 5; r.accepted = true; return r;
+    }
+    useSpecialMaker(p, kind) {
+      const { r, ok } = this._boosterStart(Booster.SpecialMaker);
+      const bd = this.board;
+      if (!ok || kind === SK.None || !bd.inBounds(p) || !bd.isMovable(p) || bd.special(p) !== SK.None) return r;
+      this.consume(Booster.SpecialMaker);
+      bd.setSpecial(p, kind);
+      r.steps.push({ kind: 'Clear', cascade: 0, points: 0, cleared: [], created: [{ pos: p, type: bd.get(p), kind }], activated: [], hits: [] });
+      r.accepted = true; return r;
+    }
+
+    _resolve(result, first, swapA, swapB) {
+      let cascade = 0, outcome = first;
+      while (cascade < 100) {
+        if (!outcome) {
+          const matches = findMatches(this.board);
+          if (matches.length === 0) break;
+          outcome = fromMatches(this.board, matches, cascade === 0 ? swapA : null, cascade === 0 ? swapB : null);
+        }
+        cascade++;
+        this._apply(result, outcome, cascade);
+        outcome = null;
+        const falls = applyGravity(this.board);
+        if (falls.length > 0) result.steps.push({ kind: 'Fall', moves: falls });
+        const spawns = refill(this.board, this.source);
+        if (spawns.length > 0) result.steps.push({ kind: 'Spawn', moves: spawns });
+      }
+      result.maxCascade = cascade;
+      this._updateState();
+      if (this.state === 'Playing' && !hasMove(this.board)) {
+        const moves = tryReshuffle(this.board, this.rng);
+        if (moves) result.steps.push({ kind: 'Shuffle', moves });
+      }
+      result.state = this.state;
+    }
+    _apply(result, o, cascade) {
+      filterObstacles(this.board, o);
+      const points = calcPoints(o.cleared.size + o.created.length, cascade);
+      this.score += points; result.pointsGained += points;
+      for (const it of this.objectives) {
+        const s = it.spec.kind;
+        if (s === Obj.CollectType) it.current += o.stats.clearedByType.get(it.spec.type) || 0;
+        else if (s === Obj.ClearJelly) it.current += o.stats.jellyCleared;
+        else if (s === Obj.BreakFrozen) it.current += o.stats.frozenBroken;
+        else if (s === Obj.DestroyCrates) it.current += o.stats.cratesDestroyed;
+      }
+      const step = { kind: 'Clear', cascade, points, cleared: [], created: o.created, activated: o.activated, hits: o.hits };
+      for (const p of o.cleared.values()) { step.cleared.push(p); this.board.clearCell(p); }
+      for (const c of o.created) this.board.setSpecial(c.pos, c.kind);
+      result.steps.push(step);
+    }
+    _updateState() {
+      if (this.score >= this.config.targetScore && this.objectivesDone()) this.state = 'Won';
+      else if (this.movesLeft <= 0) this.state = 'Lost';
+    }
+  }
+
+  // ---------------------------------------------------------------- catálogo de 30 niveles
+  const COUNT = 30;
+  const PPM = [700, 700, 420, 420, 520];
+  const roundHalfEven = (v) => { const f = Math.floor(v), d = v - f; if (d < 0.5) return f; if (d > 0.5) return f + 1; return f % 2 === 0 ? f : f + 1; };
+  const round100 = (v) => roundHalfEven(v / 100.0) * 100;
+  const moves150 = (m) => round100(m * 150);
+  const emptyGrid = (w, h) => Array.from({ length: h }, () => Array(w).fill('.'));
+  const toRows = (g) => g.map((r) => r.join(''));
+  function place(g, rng, ch, count, minRow, maxRow) {
+    const w = g[0].length; let placed = 0, guard = 0;
+    while (placed < count && guard++ < 1000) {
+      const r = rng.nextRange(minRow, maxRow + 1), x = rng.next(w);
+      if (g[r][x] !== '.') continue;
+      g[r][x] = ch; placed++;
+    }
+  }
+  function jellyPattern(w, h, j) {
+    const g = emptyGrid(w, h), rows = 2 + (j % 3);
+    for (let k = 0; k < rows; k++) for (let x = 0; x < w; x++) g[h - 1 - k][x] = (j >= 3 && k === 0 && x > 1 && x < w - 2) ? '2' : '1';
+    if (j === 2) for (let x = 0; x < w; x += 2) g[h - 1 - rows][x] = '1';
+    return toRows(g);
+  }
+  function scatter(w, h, rng, a, ca, b, cb) { const g = emptyGrid(w, h); place(g, rng, a, ca, 2, h - 1); place(g, rng, b, cb, 2, h - 1); return toRows(g); }
+  function topCrates(w, h, rng, count, kind) { const g = emptyGrid(w, h); place(g, rng, kind, count, 0, 1); return toRows(g); }
+  function overlay(base, top) { return base.map((row, r) => row.split('').map((ch, x) => (ch === '.' ? top[r][x] : ch)).join('')); }
+  function putStones(rows, count) {
+    const o = rows.slice(); let placed = 0;
+    for (let x = 0; x < o[0].length && placed < count; x += 3) {
+      const chars = o[0].split('');
+      if (chars[x] !== '.') continue;
+      chars[x] = 'S'; o[0] = chars.join(''); placed++;
+    }
+    return o;
+  }
+  function getLevel(level) {
+    if (level < 1 || level > COUNT) throw new RangeError('nivel');
+    const i = level - 1, tier = Math.floor(i / 5), j = i % 5;
+    const size = tier === 0 && j < 2 ? 7 : tier === 0 && j < 4 ? 8 : 9;
+    const c = { width: size, height: size, typeCount: tier === 0 && j < 2 ? 4 : tier >= 4 ? 6 : 5, seed: 7000 + level * 31,
+      moves: 25, targetScore: 1500, tileRows: null, jellyRows: null, objectives: [] };
+    const rng = new GameRng(c.seed);
+    switch (tier) {
+      case 0: c.moves = 20 + j * 2; c.targetScore = round100(c.moves * PPM[j] * (0.35 + 0.08 * j)); break;
+      case 1: c.moves = 24 + j * 2; c.targetScore = moves150(c.moves);
+        c.objectives.push({ kind: Obj.CollectType, type: (j % c.typeCount) + 1, count: 45 + j * 10 }); break;
+      case 2: c.moves = 26 + j * 3; c.targetScore = moves150(c.moves); c.jellyRows = jellyPattern(c.width, c.height, j);
+        c.objectives.push({ kind: Obj.ClearJelly, type: 0, count: 0 }); break;
+      case 3: c.moves = 28 + j * 3; c.targetScore = moves150(c.moves);
+        c.tileRows = scatter(c.width, c.height, rng, 'f', 5 + j * 2, j >= 3 ? 'F' : 'f', j >= 3 ? 3 : 0);
+        c.objectives.push({ kind: Obj.BreakFrozen, type: 0, count: 0 }); break;
+      case 4: c.moves = 32 + j * 2; c.targetScore = round100(c.moves * 120);
+        c.tileRows = topCrates(c.width, c.height, rng, 5 + j, j >= 2 ? 'C' : 'c');
+        c.objectives.push({ kind: Obj.DestroyCrates, type: 0, count: 0 }); break;
+      default: {
+        c.moves = 50 + j * 3; c.targetScore = round100(c.moves * 80);
+        c.jellyRows = jellyPattern(c.width, c.height, 1);
+        let rows = topCrates(c.width, c.height, rng, 4, 'c');
+        rows = overlay(rows, scatter(c.width, c.height, rng, 'f', 6, 'F', j));
+        rows = putStones(rows, 2);
+        c.tileRows = rows;
+        c.objectives.push({ kind: Obj.ClearJelly, type: 0, count: 0 }, { kind: Obj.BreakFrozen, type: 0, count: 0 }, { kind: Obj.DestroyCrates, type: 0, count: 0 });
+        if (j >= 2) c.objectives.push({ kind: Obj.CollectType, type: 1, count: 30 + j * 4 });
+      }
+    }
+    return c;
+  }
+
+  root.PetaloCore = { EMPTY, CRATE, STONE, SK, Obj, Booster, P, GameRng, Board, GameSession, getLevel, LEVEL_COUNT: COUNT, findAllMoves, hasMove, findMatches, isValidSwap, starsFor };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.PetaloCore;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function(){
+'use strict';
+const C=window.PetaloCore,{P,SK,Obj,Booster}=C;
+const $=id=>document.getElementById(id);
+const COLORS=['#ef5b6c','#f5a623','#4fb86a','#3f8fe0','#9b59d0','#ec6bb0'];
+const KEY='petalopop.web.v1';
+const GIFT={0:3,1:2,2:2,3:2,4:2};
+const BO=[[Booster.Hammer,'🔨','Martillo'],[Booster.FreeSwap,'🔄','Cambio'],[Booster.ObstacleRemover,'🧹','Limpiar'],[Booster.ExtraMoves,'➕','+5'],[Booster.SpecialMaker,'💣','Bomba']];
+// ------------------------------------------------------------ guardado (localStorage tolerante)
+function defSave(){return{unlocked:1,stars:Array(30).fill(0),best:Array(30).fill(0),inv:Object.assign({},GIFT),sound:true}}
+let save=(function(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&Array.isArray(s.stars)){const d=defSave();return Object.assign(d,s)}}catch(e){}return defSave()})();
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(save))}catch(e){}}
+// ------------------------------------------------------------ audio (tras la primera interacción)
+let actx=null;
+function beep(f,d,type,v,delay){if(!save.sound)return;try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();const t=actx.currentTime+(delay||0),o=actx.createOscillator(),g=actx.createGain();o.type=type||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.08,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+d)}catch(e){}}
+const sfx={swap:()=>beep(330,.08,'triangle'),bad:()=>beep(150,.15,'sawtooth',.05),pop:c=>beep(420+60*Math.min(c,6),.12,'sine',.09),special:()=>{beep(600,.15,'square',.05);beep(900,.2,'square',.04,.08)},win:()=>[523,659,784,1046].forEach((f,i)=>beep(f,.25,'triangle',.09,i*.12)),lose:()=>[330,262,196].forEach((f,i)=>beep(f,.3,'sine',.08,i*.15))};
+function setSound(on){save.sound=on;persist();$('snd1').textContent=$('snd2').textContent=on?'🔊':'🔇'}
+// ------------------------------------------------------------ menú
+function buildMenu(){const g=$('grid');g.innerHTML='';for(let l=1;l<=30;l++){const b=document.createElement('button');b.className='lv';const s=save.stars[l-1];b.innerHTML='<b>'+l+'</b><span>'+(l>save.unlocked?'🔒':'★'.repeat(s)+'☆'.repeat(3-s))+'</span>';b.disabled=l>save.unlocked;b.onclick=()=>startLevel(l);g.appendChild(b)}}
+function show(game){$('menu').hidden=game;$('game').hidden=!game;$('game').style.display=game?'flex':'none';if(game)resize()}
+// ------------------------------------------------------------ estado de partida
+const cv=$('cv'),ctx=cv.getContext('2d');
+let S=null,level=1,W=0,H=0,cs=0,view=[],jv=[],busy=false,armed=null,pending=null,sel=null,idleAt=0,parts=[],cssv={};
+const now=()=>performance.now();
+function mkTile(t,sp,hp,x,y){return{t,sp,hp,x,y,a:null,dying:0,sc:1,pulse:0}}
+function syncView(){view=[];jv=[];for(let x=0;x<W;x++){view.push([]);jv.push([]);for(let y=0;y<H;y++){const p=P(x,y),t=S.board.get(p);view[x].push(t?mkTile(t,S.board.special(p),S.board.hp(p),x,y):null);jv[x].push(S.board.jelly(p))}}}
+function startLevel(l){level=l;S=new C.GameSession(C.getLevel(l),save.inv);// el inventario se consume sobre save.inv
+ S.boosters=save.inv;W=S.board.width;H=S.board.height;busy=false;armed=null;pending=null;sel=null;idleAt=now();parts=[];$('end').hidden=true;$('ltitle').textContent='Nivel '+l;
+ syncView();buildTargetMarks();hud();boosterBar();msg('Desliza un pétalo hacia un vecino.');show(true)}
+function msg(t){$('msg').textContent=t}
+const OBJ_TXT={[Obj.ClearJelly]:'Gelatina',[Obj.BreakFrozen]:'Hielo',[Obj.DestroyCrates]:'Cajas'};
+function buildTargetMarks(){const bar=$('bar');bar.querySelectorAll('i').forEach(e=>e.remove());[1,1.5,2].forEach(m=>{const i=document.createElement('i');i.style.left=(100*m/2)+'%';bar.appendChild(i)})}
+function hud(){const T=S.config.targetScore;$('moves').textContent=S.movesLeft;$('score').textContent=S.score;$('target').textContent=T;$('fill').style.width=Math.min(100,100*S.score/(2*T))+'%';
+ const o=$('objs');o.innerHTML='';for(const it of S.objectives){const d=document.createElement('div');const done=it.current>=it.target;d.className='obj'+(done?' done':'');const cur=Math.min(it.current,it.target);
+  d.innerHTML=(it.spec.kind===Obj.CollectType?'<span class="dot" style="background:'+COLORS[it.spec.type-1]+'"></span>':OBJ_TXT[it.spec.kind]+' ')+cur+'/'+it.target;o.appendChild(d)}}
+function boosterBar(){const b=$('boosters');b.innerHTML='';for(const[k,ic,name]of BO){const e=document.createElement('button');const n=S.count(k);e.className='bo'+(armed&&armed.k===k?' on':'');e.disabled=n<=0||busy||S.state!=='Playing';e.innerHTML='<em>'+ic+'</em>'+name+'<span class="n">'+n+'</span>';e.onclick=()=>pickBooster(k);b.appendChild(e)}}
+function pickBooster(k){if(busy||S.state!=='Playing')return;if(k===Booster.ExtraMoves){run(()=>S.useExtraMoves());return}
+ armed=armed&&armed.k===k?null:{k};pending=null;sel=null;boosterBar();msg(armed?(k===Booster.FreeSwap?'Cambio libre: toca dos pétalos vecinos.':'Toca el objetivo.'):'')}
+// ------------------------------------------------------------ animación de pasos
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+function go(tile,tx,ty,dur){tile.a={fx:tile.x,fy:tile.y,tx,ty,t0:now(),dur}}
+function burst(x,y,col,n){for(let i=0;i<n;i++){const a=Math.random()*6.283,s=1.5+Math.random()*3.5;parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,col})}}
+async function play(steps){
+ for(const st of steps){
+  if(st.kind==='Swap'||st.kind==='SwapBack'){const a=view[st.a.x][st.a.y],b=view[st.b.x][st.b.y];sfx.swap();
+   if(a)go(a,st.b.x,st.b.y,140);if(b)go(b,st.a.x,st.a.y,140);view[st.a.x][st.a.y]=b;view[st.b.x][st.b.y]=a;await wait(150);
+   if(st.kind==='SwapBack'){sfx.bad()}}
+  else if(st.kind==='Clear'){
+   for(const p of st.cleared){const t=view[p.x][p.y];if(t){t.dying=now();burst(p.x,p.y,COLORS[t.t-1]||'#a07850',4);view[p.x][p.y]=null;dead.push(t)}}
+   for(const c of st.created){const t=view[c.pos.x][c.pos.y];if(t){t.sp=c.kind;t.pulse=now()}}
+   if(st.activated.length||st.created.length)sfx.special();else sfx.pop(st.cascade);
+   for(const h of st.hits){if(h.kind==='Jelly')jv[h.pos.x][h.pos.y]=h.remaining;else{const t=view[h.pos.x][h.pos.y];if(t){t.hp=h.remaining;t.pulse=now()}}}
+   hud();await wait(210)}
+  else if(st.kind==='Fall'||st.kind==='Spawn'||st.kind==='Shuffle'){
+   const tiles=[];for(const m of st.moves){let t;if(st.kind==='Spawn')t=mkTile(m.type,0,0,m.from.x,m.from.y);else{t=view[m.from.x][m.from.y];if(st.kind==='Fall')view[m.from.x][m.from.y]=null}tiles.push([t,m])}
+   if(st.kind==='Shuffle')for(const[,m]of tiles)view[m.from.x][m.from.y]=null;
+   let md=0;for(const[t,m]of tiles){if(!t)continue;view[m.to.x][m.to.y]=t;const d=Math.hypot(m.to.x-t.x,m.to.y-t.y);md=Math.max(md,d);go(t,m.to.x,m.to.y,st.kind==='Shuffle'?350:110+60*d)}
+   if(st.kind==='Shuffle')msg('Sin movimientos: tablero mezclado.');
+   await wait(md?Math.min(600,130+60*md):0)}
+ }
+}
+let dead=[];
+async function run(fn){if(busy)return;busy=true;boosterBar();const r=fn();idleAt=now();
+ if(!r.accepted&&!r.steps.length){busy=false;boosterBar();return false}
+ await play(r.steps);syncView();hud();busy=false;idleAt=now();
+ if(r.accepted&&r.pointsGained>0&&r.maxCascade>1)msg('¡Cascada x'+r.maxCascade+'! +'+r.pointsGained);else if(r.accepted&&r.pointsGained>0)msg('+'+r.pointsGained);
+ if(S.state!=='Playing')finish();else boosterBar();return r.accepted}
+function finish(){boosterBar();const T=S.config.targetScore;const won=S.state==='Won';
+ if(won){const st=S.stars;save.stars[level-1]=Math.max(save.stars[level-1],st);save.best[level-1]=Math.max(save.best[level-1],S.score);if(level<30)save.unlocked=Math.max(save.unlocked,level+1);
+  const rk=BO[level%5][0];save.inv[rk]=(save.inv[rk]||0)+1;persist();sfx.win();
+  $('etitle').textContent='¡Nivel superado!';$('stars').textContent='★'.repeat(st)+'☆'.repeat(3-st);$('etext').textContent=S.score+' puntos · premio: 1 '+BO[level%5][2];$('enext').hidden=level>=30}
+ else{persist();sfx.lose();$('etitle').textContent='Sin movimientos';$('stars').textContent='☆☆☆';$('etext').textContent=S.score<T?'Te faltaron '+(T-S.score)+' puntos.':'Faltó completar los objetivos.';$('enext').hidden=true}
+ setTimeout(()=>{$('end').hidden=false},350)}
+// ------------------------------------------------------------ entrada
+function cellAt(ev){const r=cv.getBoundingClientRect();const x=Math.floor((ev.clientX-r.left)/r.width*W),y=H-1-Math.floor((ev.clientY-r.top)/r.height*H);return(x>=0&&y>=0&&x<W&&y<H)?P(x,y):null}
+let down=null;
+cv.addEventListener('pointerdown',e=>{if(busy||S.state!=='Playing')return;const p=cellAt(e);if(!p)return;down={p,x:e.clientX,y:e.clientY,done:false};try{cv.setPointerCapture(e.pointerId)}catch(_){}idleAt=now()});
+cv.addEventListener('pointermove',e=>{if(!down||down.done||busy)return;const dx=e.clientX-down.x,dy=e.clientY-down.y,th=cv.getBoundingClientRect().width/W*.35;
+ if(Math.hypot(dx,dy)<th)return;down.done=true;let d=Math.abs(dx)>Math.abs(dy)?P(Math.sign(dx),0):P(0,-Math.sign(dy));trySwap(down.p,P(down.p.x+d.x,down.p.y+d.y))});
+cv.addEventListener('pointerup',e=>{if(down&&!down.done&&!busy)tap(down.p);down=null});
+cv.addEventListener('pointercancel',()=>{down=null});
+const adj=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1;
+function trySwap(a,b){if(!S.board.inBounds(b))return;sel=null;if(armed&&armed.k===Booster.FreeSwap){freeSwap(a,b);return}run(()=>S.trySwap(a,b))}
+function freeSwap(a,b){armed=null;pending=null;run(()=>S.useFreeSwap(a,b)).then(()=>{boosterBar()})}
+function tap(p){
+ if(armed){const k=armed.k;
+  if(k===Booster.FreeSwap){if(!pending){pending=p;sel=p;msg('Ahora toca un vecino.');return}if(!adj(pending,p)){pending=p;sel=p;return}const a=pending;pending=null;sel=null;freeSwap(a,p);return}
+  armed=null;sel=null;boosterBar();
+  const f=k===Booster.Hammer?()=>S.useHammer(p):k===Booster.ObstacleRemover?()=>S.useObstacleRemover(p):()=>S.useSpecialMaker(p,SK.Bomb);
+  run(f).then(ok=>{if(ok===false)msg('Ahí no se puede usar.')});return}
+ if(!S.board.isMovable(p)){sel=null;return}
+ if(sel&&adj(sel,p)){const a=sel;sel=null;run(()=>S.trySwap(a,p));return}
+ sel=p}
+// ------------------------------------------------------------ dibujo
+function shape(c,t,cx,cy,r){c.beginPath();switch(t){
+ case 1:c.arc(cx,cy,r,0,6.283);break;
+ case 2:c.moveTo(cx,cy-r*1.1);c.lineTo(cx+r*1.05,cy);c.lineTo(cx,cy+r*1.1);c.lineTo(cx-r*1.05,cy);c.closePath();break;
+ case 3:rr(c,cx-r*.9,cy-r*.9,r*1.8,r*1.8,r*.4);break;
+ case 4:c.moveTo(cx,cy-r);c.lineTo(cx+r*1.05,cy+r*.8);c.lineTo(cx-r*1.05,cy+r*.8);c.closePath();break;
+ case 5:for(let i=0;i<6;i++){const a=i*Math.PI/3+Math.PI/6;c.lineTo(cx+Math.cos(a)*r*1.05,cy+Math.sin(a)*r*1.05)}c.closePath();break;
+ default:for(let i=0;i<10;i++){const a=i*Math.PI/5-Math.PI/2,rad=i%2?r*.5:r*1.12;c.lineTo(cx+Math.cos(a)*rad,cy+Math.sin(a)*rad)}c.closePath()}}
+function rr(c,x,y,w,h,r){c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function px(x){return x*cs}function py(y){return(H-1-y)*cs}
+function drawTile(t,tm){const cx=px(t.x)+cs/2,cy=py(t.y)+cs/2;let sc=t.sc,al=1;
+ if(t.dying){const k=Math.min(1,(tm-t.dying)/200);sc=1-k;al=1-k;if(k>=1)return}
+ if(t.pulse){const k=(tm-t.pulse)/300;if(k<1)sc*=1+.25*Math.sin(k*Math.PI)}
+ if(sel&&!t.dying&&Math.round(t.x)===sel.x&&Math.round(t.y)===sel.y)sc*=1.12+.05*Math.sin(tm/120);
+ ctx.save();ctx.globalAlpha=al;ctx.translate(cx,cy);ctx.scale(sc,sc);const r=cs*.34;
+ if(t.t===C.CRATE){ctx.fillStyle='#a8743c';ctx.beginPath();rr(ctx,-cs*.4,-cs*.4,cs*.8,cs*.8,cs*.1);ctx.fill();ctx.strokeStyle='#6e4520';ctx.lineWidth=cs*.05;ctx.stroke();ctx.beginPath();ctx.moveTo(-cs*.4,-cs*.4);ctx.lineTo(cs*.4,cs*.4);ctx.moveTo(cs*.4,-cs*.4);ctx.lineTo(-cs*.4,cs*.4);ctx.stroke();ctx.fillStyle='#fff';ctx.font='800 '+cs*.3+'px Baloo 2,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.strokeStyle='#6e4520';ctx.lineWidth=cs*.06;ctx.strokeText(t.hp,0,cs*.02);ctx.fillText(t.hp,0,cs*.02)}
+ else if(t.t===C.STONE){ctx.fillStyle='#7f8794';ctx.beginPath();rr(ctx,-cs*.42,-cs*.42,cs*.84,cs*.84,cs*.3);ctx.fill();ctx.fillStyle='rgba(255,255,255,.25)';ctx.beginPath();ctx.arc(-cs*.12,-cs*.14,cs*.12,0,6.283);ctx.fill()}
+ else{const col=COLORS[t.t-1];shape(ctx,t.t,0,0,r);ctx.fillStyle=col;ctx.fill();ctx.lineWidth=cs*.04;ctx.strokeStyle='rgba(0,0,0,.25)';ctx.stroke();
+  ctx.beginPath();ctx.arc(-r*.3,-r*.35,r*.22,0,6.283);ctx.fillStyle='rgba(255,255,255,.45)';ctx.fill();
+  if(t.sp)special(t.sp,r,tm);
+  if(t.hp>0){ctx.fillStyle='rgba(170,225,255,'+(.35+.12*t.hp)+')';ctx.strokeStyle='#e9f8ff';ctx.lineWidth=cs*.05;ctx.beginPath();rr(ctx,-cs*.43,-cs*.43,cs*.86,cs*.86,cs*.14);ctx.fill();ctx.stroke();if(t.hp>1){ctx.beginPath();rr(ctx,-cs*.34,-cs*.34,cs*.68,cs*.68,cs*.1);ctx.stroke()}}}
+ ctx.restore()}
+function special(k,r,tm){ctx.save();ctx.lineWidth=cs*.06;ctx.strokeStyle='#fff';ctx.fillStyle='#fff';
+ if(k===SK.LineH||k===SK.LineV){if(k===SK.LineV)ctx.rotate(Math.PI/2);for(const d of[-1,1]){ctx.beginPath();ctx.moveTo(d*r*.25,0);ctx.lineTo(d*r*1.15,0);ctx.stroke();ctx.beginPath();ctx.moveTo(d*r*1.25,0);ctx.lineTo(d*r*.85,-r*.3);ctx.lineTo(d*r*.85,r*.3);ctx.closePath();ctx.fill()}}
+ else if(k===SK.Bomb){ctx.beginPath();ctx.arc(0,0,r*.55+Math.sin(tm/200)*r*.05,0,6.283);ctx.stroke();ctx.beginPath();ctx.arc(0,0,r*.2,0,6.283);ctx.fill()}
+ else{ctx.rotate(tm/700);for(let i=0;i<6;i++){ctx.rotate(Math.PI/3);ctx.fillStyle='hsl('+(i*60)+',90%,60%)';ctx.beginPath();ctx.arc(r*.55,0,r*.28,0,6.283);ctx.fill();ctx.stroke()}}
+ ctx.restore()}
+function draw(){requestAnimationFrame(draw);if(!S||$('game').hidden)return;const tm=now();
+ ctx.clearRect(0,0,cv.width,cv.height);ctx.save();ctx.scale(cv.width/(cs*W||1),cv.width/(cs*W||1));
+ for(let x=0;x<W;x++)for(let y=0;y<H;y++){ctx.fillStyle=cssv.cell;ctx.globalAlpha=(x+y)%2?.55:.85;ctx.beginPath();rr(ctx,px(x)+cs*.04,py(y)+cs*.04,cs*.92,cs*.92,cs*.16);ctx.fill();ctx.globalAlpha=1;
+  const j=jv[x]&&jv[x][y];if(j>0){ctx.fillStyle=j>1?'rgba(235,90,170,.55)':'rgba(255,150,205,.45)';ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=cs*.04;ctx.beginPath();rr(ctx,px(x)+cs*.02,py(y)+cs*.02,cs*.96,cs*.96,cs*.18);ctx.fill();ctx.stroke()}}
+ // pista tras 6 s sin actividad
+ let hint=null;if(!busy&&S.state==='Playing'&&tm-idleAt>6000)hint=S.hint();
+ const all=[];for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(view[x]&&view[x][y])all.push(view[x][y]);
+ for(const t of dead)all.push(t);
+ for(const t of all){if(t.a){const k=Math.min(1,(tm-t.a.t0)/t.a.dur),e=ease(k);t.x=t.a.fx+(t.a.tx-t.a.fx)*e;t.y=t.a.fy+(t.a.ty-t.a.fy)*e;if(k>=1){t.x=t.a.tx;t.y=t.a.ty;t.a=null}}}
+ dead=dead.filter(t=>tm-t.dying<220);
+ for(const t of all){if(hint&&!t.dying&&((Math.round(t.x)===hint.from.x&&Math.round(t.y)===hint.from.y)||(Math.round(t.x)===hint.to.x&&Math.round(t.y)===hint.to.y))){const s=1+.08*Math.sin(tm/160);t.sc=s}else t.sc=1;drawTile(t,tm)}
+ parts=parts.filter(p=>p.life>0);for(const p of parts){p.x+=p.vx*.016;p.y+=p.vy*.016;p.vy-=.05;p.life-=.035;ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(px(p.x)+cs/2,py(0)+cs/2-(p.y)*cs,cs*.06,0,6.283);ctx.fill()}
+ ctx.restore()}
+function resize(){if(!S)return;const w=cv.clientWidth||320,dpr=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(w*dpr);cv.height=Math.round(w*dpr);cs=cv.width/W/dpr*dpr;readCss()}
+function readCss(){const s=getComputedStyle(document.documentElement);cssv.cell=s.getPropertyValue('--cell').trim()||'#fbeeea'}
+window.addEventListener('resize',resize);
+if(window.matchMedia)try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',readCss)}catch(e){}
+// ------------------------------------------------------------ botones
+$('snd1').onclick=$('snd2').onclick=()=>setSound(!save.sound);
+$('back').onclick=()=>{S=null;buildMenu();show(false)};
+$('emenu').onclick=()=>{S=null;buildMenu();show(false)};
+$('eretry').onclick=()=>startLevel(level);
+$('enext').onclick=()=>startLevel(Math.min(30,level+1));
+setSound(save.sound);buildMenu();show(false);readCss();requestAnimationFrame(draw);
+window.__petalo={get S(){return S},startLevel,run,play,get busy(){return busy},get save(){return save},C};
+})();
+</script>

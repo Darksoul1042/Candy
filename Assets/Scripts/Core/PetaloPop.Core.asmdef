@@ -1,0 +1,6 @@
+{
+  "name": "PetaloPop.Core",
+  "rootNamespace": "PetaloPop.Core",
+  "noEngineReferences": true,
+  "autoReferenced": true
+}

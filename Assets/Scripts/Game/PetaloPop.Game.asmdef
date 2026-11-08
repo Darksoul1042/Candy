@@ -1,0 +1,6 @@
+{
+  "name": "PetaloPop.Game",
+  "rootNamespace": "PetaloPop.Game",
+  "references": ["PetaloPop.Core", "UnityEngine.UI"],
+  "autoReferenced": true
+}
